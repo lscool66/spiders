@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2022-06-21 22:33:21
+Created on 2021-05-23 08:06:54
 ---------
 @summary: 爬虫入口
 ---------
@@ -9,71 +9,36 @@ Created on 2022-06-21 22:33:21
 
 from feapder import ArgumentParser
 
-from spiders import *
-
-def crawl_xxx():
-    """
-    AirSpider爬虫
-    """
-    spider = xxx.XXXSpider()
-    spider.start()
-
-def crawl_xxx():
-    """
-    Spider爬虫
-    """
-    spider = xxx.XXXSpider(redis_key="xxx:xxx")
-    spider.start()
+from spiders.xiecheng_batchspider import XiechengBatchspider
 
 
-def crawl_xxx(args):
-    """
-    BatchSpider爬虫
-    """
-    spider = xxx_spider.XXXSpider(
-        task_table="",  # mysql中的任务表
-        batch_record_table="",  # mysql中的批次记录表
-        batch_name="xxx(周全)",  # 批次名字
-        batch_interval=7,  # 批次时间 天为单位 若为小时 可写 1 / 24
-        task_keys=["id", "xxx"],  # 需要获取任务表里的字段名，可添加多个
-        redis_key="xxx:xxxx",  # redis中存放request等信息的根key
+def bus_ctrip_com_batch(args):
+    spider = XiechengBatchspider(
+        redis_key="feapder:xiecheng_batchspider",  # redis中存放任务等信息的根key
+        task_table="_tos",  # mysql中的任务表
+        task_keys=["id", "from", "to", "is_used", "url"],  # 需要获取任务表里的字段名，可添加多个
         task_state="state",  # mysql中任务状态字段
+        batch_record_table="xiecheng_batch_record_2",  # mysql中的批次记录表
+        batch_name="携程(近三天)",  # 批次名字
+        batch_interval=1,  # 批次周期 天为单位 若为小时 可写 1 / 24
+        task_condition="`is_used` = '1' AND `url` IS NOT NULL AND `from` IN (SELECT `from` FROM `spiders`.`_froms` WHERE `is_used` = '1')"
     )
 
     if args == 1:
         spider.start_monitor_task()
     elif args == 2:
         spider.start()
-    elif args == 3:
+    elif args == 0:
         spider.init_task()
+    elif args == -1:
+        spider.to_DebugBatchSpider()
+        spider.start()
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="xxx爬虫")
+    parser = ArgumentParser(description="xiecheng_batchspider")
 
     parser.add_argument(
-        "--crawl_xxx", action="store_true", help="xxx爬虫", function=crawl_xxx
+        "--xiecheng_batchspider", type=int, nargs=1, help="(-1|0|1|2）", function=bus_ctrip_com_batch
     )
-    parser.add_argument(
-        "--crawl_xxx", action="store_true", help="xxx爬虫", function=crawl_xxx
-    )
-    parser.add_argument(
-        "--crawl_xxx",
-        type=int,
-        nargs=1,
-        help="xxx爬虫",
-        choices=[1, 2, 3],
-        function=crawl_xxx,
-    )
-
     parser.start()
-
-    # main.py作为爬虫启动的统一入口，提供命令行的方式启动多个爬虫，若只有一个爬虫，可不编写main.py
-    # 将上面的xxx修改为自己实际的爬虫名
-    # 查看运行命令 python main.py --help
-    # AirSpider与Spider爬虫运行方式 python main.py --crawl_xxx
-    # BatchSpider运行方式
-    # 1. 下发任务：python main.py --crawl_xxx 1
-    # 2. 采集：python main.py --crawl_xxx 2
-    # 3. 重置任务：python main.py --crawl_xxx 3
-
